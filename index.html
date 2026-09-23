@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+```
+<title>Grid Duel | Multiplayer Tic-Tac-Toe</title>
+
+<!-- Supabase JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    :root {
+        --bg: #070914;
+        --card: rgba(18, 23, 40, 0.86);
+        --card-light: rgba(30, 37, 60, 0.76);
+        --border: rgba(255, 255, 255, 0.09);
+
+        --white: #f8fafc;
+        --muted: #94a3b8;
+
+        --purple: #8b5cf6;
+        --purple-light: #a78bfa;
+        --blue: #38bdf8;
+        --green: #34d399;
+        --red: #fb7185;
+    }
+
+    body {
+        min-height: 100vh;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+            BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+        color: var(--white);
+
+        background:
+            radial-gradient(
+                circle at 15% 15%,
+                rgba(139, 92, 246, 0.23),
+                transparent 30%
+            ),
+            radial-gradient(
+                circle at 85% 80%,
+                rgba(56, 189, 248, 0.15),
+                transparent 30%
+            ),
+            linear-gradient(
+                135deg,
+                #050711,
+                #0c1120 50%,
+                #070914
+            );
+
+        padding: 30px 16px;
+    }
+
+    button,
+    input {
+        font: inherit;
+    }
+
+    button {
+        cursor: pointer;
+    }
+
+    .app {
+        width: 100%;
+        max-width: 900px;
+        margin: auto;
+    }
+
+    /* HEADER */
+
+    .header {
+        text-align: center;
+        margin-bottom: 28px;
+    }
+
+    .logo {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 15px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 20px;
+
+        background: linear-gradient(
+            135deg,
+            var(--purple),
+            var(--blue)
+        );
+
+        box-shadow:
+            0 15px 45px rgba(139, 92, 246, 0.35);
+
+        font-size: 30px;
+        font-weight: 900;
+    }
+
+    .header h1 {
+        font-size: clamp(42px, 8vw, 70px);
+        font-weight: 900;
+        letter-spacing: -4px;
+
+        background: linear-gradient(
+            135deg,
+            #ffffff,
+            var(--purple-light),
+            var(--blue)
+        );
+
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .header p {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 15px;
+    }
+
+    /* CARDS */
+
+    .card {
+        background: var(--card);
+
+        border: 1px solid var(--border);
+        border-radius: 24px;
+
+        padding: 22px;
+        margin-bottom: 16px;
+
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+
+        box-shadow:
+            0 25px 70px rgba(0, 0, 0, 0.35);
+    }
+
+    /* SETUP */
+
+    #setupScreen {
+        text-align: center;
+    }
+
+    #setupScreen h2 {
+        font-size: 25px;
+        margin-bottom: 8px;
+    }
+
+    .setup-description {
+        color: var(--muted);
+        margin-bottom: 25px;
+        line-height: 1.6;
+    }
+
+    .setup-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+    }
+
+    .setup-button {
+        padding: 17px;
+        border-radius: 16px;
+
+        border: 1px solid rgba(255, 255, 255, 0.08);
+
+        color: white;
+        font-weight: 800;
+
+        transition: 0.2s;
+    }
+
+    .setup-button:hover {
+        transform: translateY(-3px);
+    }
+
+    .create-button {
+        background: linear-gradient(
+            135deg,
+            var(--purple),
+            #6d28d9
+        );
+    }
+
+    .join-button {
+        background: rgba(56, 189, 248, 0.10);
+
+        border-color:
+            rgba(56, 189, 248, 0.2);
+    }
+
+    .join-area {
+        display: none;
+        margin-top: 20px;
+    }
+
+    .join-area.active {
+        display: block;
+    }
+
+    .room-input {
+        width: 100%;
+
+        padding: 15px;
+
+        border-radius: 13px;
+
+        border: 1px solid rgba(255, 255, 255, 0.1);
+
+        outline: none;
+
+        background: rgba(255, 255, 255, 0.05);
+
+        color: white;
+
+        text-align: center;
+
+        font-size: 18px;
+
+        letter-spacing: 3px;
+
+        text-transform: uppercase;
+
+        margin-bottom: 12px;
+    }
+
+    .room-input:focus {
+        border-color: var(--purple);
+    }
+
+    /* GAME */
+
+    #gameScreen {
+        display: none;
+    }
+
+    #gameScreen.active {
+        display: block;
+    }
+
+    /* ROOM */
+
+    .room-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .room-label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 5px;
+        letter-spacing: 1px;
+    }
+
+    .room-code {
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: 4px;
+        color: var(--purple-light);
+    }
+
+    .copy-button {
+        padding: 12px 18px;
+
+        border: none;
+        border-radius: 12px;
+
+        color: white;
+
+        background: linear-gradient(
+            135deg,
+            var(--purple),
+            #6d28d9
+        );
+
+        font-weight: 800;
+        transition: 0.2s;
+    }
+
+    .copy-button:hover {
+        transform: translateY(-2px);
+
+        box-shadow:
+            0 10px 30px
+            rgba(139, 92, 246, 0.3);
+    }
+
+    /* PLAYERS */
+
+    .players {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    .player {
+        padding: 18px;
+        border-radius: 18px;
+
+        background: var(--card-light);
+
+        border: 1px solid var(--border);
+    }
+
+    .player-x {
+        border-color:
+            rgba(56, 189, 248, 0.25);
+    }
+
+    .player-o {
+        border-color:
+            rgba(251, 113, 133, 0.25);
+    }
+
+    .player-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .symbol {
+        width: 45px;
+        height: 45px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 13px;
+
+        font-size: 23px;
+        font-weight: 900;
+    }
+
+    .x-symbol {
+        color: var(--blue);
+        background: rgba(56, 189, 248, 0.12);
+    }
+
+    .o-symbol {
+        color: var(--red);
+        background: rgba(251, 113, 133, 0.12);
+    }
+
+    .player-name {
+        font-weight: 800;
+    }
+
+    .player-status {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    /* STATUS */
+
+    .status-card {
+        text-align: center;
+
+        background:
+            linear-gradient(
+                135deg,
+                rgba(139, 92, 246, 0.13),
+                rgba(56, 189, 248, 0.07)
+            );
+    }
+
+    .status {
+        font-size: 21px;
+        font-weight: 900;
+    }
+
+    .status-sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 6px;
+    }
+
+    /* BOARD */
+
+    .board-card {
+        display: flex;
+        justify-content: center;
+        padding: 28px;
+    }
+
+    .board {
+        width: min(90vw, 430px);
+
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, 1fr);
+
+        gap: 10px;
+    }
+
+    .cell {
+        aspect-ratio: 1;
+
+        border-radius: 18px;
+
+        border:
+            1px solid
+            rgba(255, 255, 255, 0.08);
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.06),
+                rgba(255, 255, 255, 0.015)
+            );
+
+        color: white;
+
+        font-size:
+            clamp(42px, 10vw, 70px);
+
+        font-weight: 900;
+
+        transition: 0.18s;
+    }
+
+    .cell:hover:not(:disabled) {
+        transform: translateY(-3px);
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(139, 92, 246, 0.20),
+                rgba(56, 189, 248, 0.08)
+            );
+
+        border-color:
+            rgba(167, 139, 250, 0.4);
+
+        box-shadow:
+            0 12px 30px
+            rgba(139, 92, 246, 0.15);
+    }
+
+    .cell:disabled {
+        cursor: default;
+    }
+
+    .cell.x {
+        color: var(--blue);
+
+        text-shadow:
+            0 0 25px
+            rgba(56, 189, 248, 0.35);
+    }
+
+    .cell.o {
+        color: var(--red);
+
+        text-shadow:
+            0 0 25px
+            rgba(251, 113, 133, 0.35);
+    }
+
+    .cell.winner {
+        animation:
+            winnerGlow 0.9s
+            infinite alternate;
+    }
+
+    @keyframes winnerGlow {
+
+        from {
+            box-shadow:
+                0 0 10px
+                rgba(52, 211, 153, 0.2);
+        }
+
+        to {
+            box-shadow:
+                0 0 30px
+                rgba(52, 211, 153, 0.6);
+        }
+
+    }
+
+    /* ACTIONS */
+
+    .actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .action-button {
+        padding: 13px 22px;
+
+        border-radius: 13px;
+
+        font-weight: 800;
+
+        transition: 0.2s;
+    }
+
+    .rematch {
+        color: white;
+
+        background:
+            linear-gradient(
+                135deg,
+                var(--green),
+                #059669
+            );
+
+        border: none;
+    }
+
+    .rematch:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
+    .leave {
+        color: #fecdd3;
+
+        background:
+            rgba(251, 113, 133, 0.08);
+
+        border:
+            1px solid
+            rgba(251, 113, 133, 0.18);
+    }
+
+    /* RULES */
+
+    .rules h2 {
+        margin-bottom: 16px;
+    }
+
+    .rules ul {
+        list-style: none;
+        display: grid;
+        gap: 10px;
+    }
+
+    .rules li {
+        color: var(--muted);
+
+        font-size: 14px;
+        line-height: 1.5;
+
+        padding-left: 25px;
+
+        position: relative;
+    }
+
+    .rules li::before {
+        content: "✓";
+
+        position: absolute;
+        left: 0;
+
+        color: var(--green);
+        font-weight: 900;
+    }
+
+    /* FOOTER */
+
+    .footer {
+        text-align: center;
+        color: #64748b;
+        font-size: 12px;
+        margin-top: 22px;
+    }
+
+    /* TOAST */
+
+    .toast {
+        position: fixed;
+
+        bottom: 25px;
+        left: 50%;
+
+        transform:
+            translateX(-50%)
+            translateY(100px);
+
+        padding: 13px 20px;
+
+        border-radius: 12px;
+
+        background: #151b2e;
+
+        border:
+            1px solid
+            rgba(255, 255, 255, 0.1);
+
+        box-shadow:
+            0 15px 40px
+            rgba(0, 0, 0, 0.4);
+
+        color: white;
+
+        font-weight: 700;
+
+        opacity: 0;
+
+        transition: 0.3s;
+
+        z-index: 100;
+    }
+
+    .toast.show {
+        opacity: 1;
+
+        transform:
+            translateX(-50%)
+            translateY(0);
+    }
+
+    /* MOBILE */
+
+    @media (max-width: 600px) {
+
+        body {
+            padding: 20px 12px;
+        }
+
+        .header h1 {
+            letter-spacing: -3px;
+        }
+
+        .room-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .copy-button {
+            width: 100%;
+        }
+
+        .players {
+            grid-template-columns: 1fr;
+        }
+
+        .board-card {
+            padding: 18px;
+        }
+
+        .board {
+            gap: 8px;
+        }
+
+        .cell {
+            border-radius: 14px;
+        }
+
+        .actions {
+            flex-direction: column;
+        }
+
+        .action-button {
+            width: 100%;
+        }
+
+        .setup-buttons {
+            grid-template-columns: 1fr;
+        }
+
+    }
+
+</style>
+```
+
+</head>
+
+<body>
+
+<div class="app">
+
+```
+<!-- HEADER -->
+
+<header class="header">
+
+    <div class="logo">
+        X
+    </div>
+
+    <h1>
+        Grid Duel
+    </h1>
+
+    <p>
+        Real-Time Multiplayer Tic-Tac-Toe
+    </p>
+
+</header>
+
+
+<!-- SETUP -->
+
+<section
+    class="card"
+    id="setupScreen"
+>
+
+    <h2>
+        Start a Game
+    </h2>
+
+    <p class="setup-description">
+        Create a private game room and invite
+        another player, or join an existing room.
+    </p>
+
+    <div class="setup-buttons">
+
+        <button
+            class="setup-button create-button"
+            onclick="createGame()"
+        >
+            ✦ Create Game
+        </button>
+
+        <button
+            class="setup-button join-button"
+            onclick="showJoinArea()"
+        >
+            ⇢ Join Game
+        </button>
+
+    </div>
+
+
+    <div
+        class="join-area"
+        id="joinArea"
+    >
+
+        <input
+            class="room-input"
+            id="joinRoomInput"
+            maxlength="5"
+            placeholder="ENTER ROOM CODE"
+        >
+
+        <button
+            class="setup-button create-button"
+            onclick="joinGame()"
+        >
+            Join Room
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- GAME -->
+
+<div id="gameScreen">
+
+    <!-- ROOM -->
+
+    <section class="card room-card">
+
+        <div>
+
+            <div class="room-label">
+                GAME ROOM
+            </div>
+
+            <div
+                class="room-code"
+                id="roomCode"
+            >
+                -----
+            </div>
+
+        </div>
+
+        <button
+            class="copy-button"
+            onclick="copyGameLink()"
+        >
+            Copy Game Link
+        </button>
+
+    </section>
+
+
+    <!-- PLAYERS -->
+
+    <section class="card">
+
+        <div class="players">
+
+            <div class="player player-x">
+
+                <div class="player-top">
+
+                    <div class="symbol x-symbol">
+                        X
+                    </div>
+
+                    <div>
+
+                        <div class="player-name">
+                            Player X
+                        </div>
+
+                        <div
+                            class="player-status"
+                            id="playerXStatus"
+                        >
+                            Waiting...
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="player player-o">
+
+                <div class="player-top">
+
+                    <div class="symbol o-symbol">
+                        O
+                    </div>
+
+                    <div>
+
+                        <div class="player-name">
+                            Player O
+                        </div>
+
+                        <div
+                            class="player-status"
+                            id="playerOStatus"
+                        >
+                            Waiting...
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- STATUS -->
+
+    <section class="card status-card">
+
+        <div
+            class="status"
+            id="gameStatus"
+        >
+            Waiting for opponent...
+        </div>
+
+        <div
+            class="status-sub"
+            id="statusSub"
+        >
+            Share the game link with another player.
+        </div>
+
+    </section>
+
+
+    <!-- BOARD -->
+
+    <section class="card board-card">
+
+        <div
+            class="board"
+            id="board"
+        >
+
+            <button class="cell" data-index="0"></button>
+            <button class="cell" data-index="1"></button>
+            <button class="cell" data-index="2"></button>
+
+            <button class="cell" data-index="3"></button>
+            <button class="cell" data-index="4"></button>
+            <button class="cell" data-index="5"></button>
+
+            <button class="cell" data-index="6"></button>
+            <button class="cell" data-index="7"></button>
+            <button class="cell" data-index="8"></button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ACTIONS -->
+
+    <section class="card">
+
+        <div class="actions">
+
+            <button
+                class="action-button rematch"
+                id="rematchButton"
+                onclick="rematchGame()"
+                disabled
+            >
+                ↻ Rematch
+            </button>
+
+            <button
+                class="action-button leave"
+                onclick="leaveGame()"
+            >
+                Leave Game
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- RULES -->
+
+    <section class="card rules">
+
+        <h2>
+            How to Play
+        </h2>
+
+        <ul>
+
+            <li>
+                Two players play against each other.
+            </li>
+
+            <li>
+                One player is X and the other is O.
+            </li>
+
+            <li>
+                X goes first.
+            </li>
+
+            <li>
+                Players take turns placing their symbol.
+            </li>
+
+            <li>
+                You can only place your symbol in an empty square.
+            </li>
+
+            <li>
+                Three symbols in a row wins the game.
+            </li>
+
+            <li>
+                Rows, columns and diagonals count.
+            </li>
+
+            <li>
+                All nine squares filled without a winner means a draw.
+            </li>
+
+            <li>
+                Players cannot play out of turn.
+            </li>
+
+        </ul>
+
+    </section>
+
+</div>
+
+
+<div class="footer">
+    Grid Duel • Real-Time Multiplayer
+</div>
+```
+
+</div>
+
+<!-- TOAST -->
+
+<div
+    class="toast"
+    id="toast"
+>
+    Message
+</div>
+
+<script>
+
+/* =====================================================
+   SUPABASE CONNECTION
+   ===================================================== */
+
+const SUPABASE_URL =
+    "https://qoezktezwlcpmahckkiv.supabase.co";
+
+
+const SUPABASE_KEY =
+    "sb_publishable_h9OCTgWBqF0xA0G_WjGItw_uf9oWmDn";
+
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
+
+
+/* =====================================================
+   VARIABLES
+   ===================================================== */
+
+let roomCode = null;
+let myPlayer = null;
+let gameData = null;
+let realtimeChannel = null;
+
+
+/* =====================================================
+   ELEMENTS
+   ===================================================== */
+
+const setupScreen =
+    document.getElementById("setupScreen");
+
+const gameScreen =
+    document.getElementById("gameScreen");
+
+const roomCodeElement =
+    document.getElementById("roomCode");
+
+const gameStatus =
+    document.getElementById("gameStatus");
+
+const statusSub =
+    document.getElementById("statusSub");
+
+const playerXStatus =
+    document.getElementById("playerXStatus");
+
+const playerOStatus =
+    document.getElementById("playerOStatus");
+
+const rematchButton =
+    document.getElementById("rematchButton");
+
+const cells =
+    document.querySelectorAll(".cell");
+
+
+/* =====================================================
+   WINNING COMBINATIONS
+   ===================================================== */
+
+const winningCombinations = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
+];
+
+
+/* =====================================================
+   CREATE ROOM CODE
+   ===================================================== */
+
+function generateRoomCode() {
+
+    const characters =
+        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    let result = "";
+
+    for (let i = 0; i < 5; i++) {
+
+        result += characters[
+            Math.floor(
+                Math.random() *
+                characters.length
+            )
+        ];
+
+    }
+
+    return result;
+}
+
+
+/* =====================================================
+   CREATE GAME
+   ===================================================== */
+
+async function createGame() {
+
+    try {
+
+        const newRoomCode =
+            generateRoomCode();
+
+        const playerId =
+            crypto.randomUUID();
+
+        const emptyBoard = [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+        ];
+
+        const { data, error } =
+            await supabaseClient
+                .from("games")
+                .insert({
+                    room_code: newRoomCode,
+                    board: emptyBoard,
+                    current_player: "X",
+                    player_x: playerId,
+                    player_o: null,
+                    winner: null,
+                    status: "waiting"
+                })
+                .select()
+                .single();
+
+        if (error) {
+
+            console.error(error);
+
+            showToast(
+                "Could not create game: " +
+                error.message
+            );
+
+            return;
+        }
+
+        localStorage.setItem(
+            "gridDuelPlayerId",
+            playerId
+        );
+
+        roomCode =
+            data.room_code;
+
+        myPlayer = "X";
+
+        gameData = data;
+
+        openGameScreen();
+
+        subscribeToGame();
+
+        updateGameUI();
+
+        history.replaceState(
+            null,
+            "",
+            "?room=" + roomCode
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            "Something went wrong."
+        );
+    }
+}
+
+
+/* =====================================================
+   SHOW JOIN AREA
+   ===================================================== */
+
+function showJoinArea() {
+
+    document
+        .getElementById("joinArea")
+        .classList.add("active");
+}
+
+
+/* =====================================================
+   JOIN GAME
+   ===================================================== */
+
+async function joinGame() {
+
+    const input =
+        document.getElementById(
+            "joinRoomInput"
+        );
+
+    const code =
+        input.value
+            .trim()
+            .toUpperCase();
+
+    if (code.length !== 5) {
+
+        showToast(
+            "Enter a 5-character room code."
+        );
+
+        return;
+    }
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("games")
+                .select("*")
+                .eq("room_code", code)
+                .single();
+
+        if (error || !data) {
+
+            showToast(
+                "Game room not found."
+            );
+
+            return;
+        }
+
+        if (data.player_o) {
+
+            showToast(
+                "This room already has two players."
+            );
+
+            return;
+        }
+
+        const playerId =
+            crypto.randomUUID();
+
+        const { data: updatedGame,
+                error: updateError } =
+            await supabaseClient
+                .from("games")
+                .update({
+                    player_o: playerId,
+                    status: "playing"
+                })
+                .eq("room_code", code)
+                .is("player_o", null)
+                .select()
+                .single();
+
+        if (updateError) {
+
+            console.error(updateError);
+
+            showToast(
+                "Could not join game."
+            );
+
+            return;
+        }
+
+        localStorage.setItem(
+            "gridDuelPlayerId",
+            playerId
+        );
+
+        roomCode = code;
+
+        myPlayer = "O";
+
+        gameData = updatedGame;
+
+        openGameScreen();
+
+        subscribeToGame();
+
+        updateGameUI();
+
+        history.replaceState(
+            null,
+            "",
+            "?room=" + roomCode
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            "Something went wrong."
+        );
+    }
+}
+
+
+/* =====================================================
+   OPEN GAME SCREEN
+   ===================================================== */
+
+function openGameScreen() {
+
+    setupScreen.style.display =
+        "none";
+
+    gameScreen.classList.add(
+        "active"
+    );
+
+    roomCodeElement.textContent =
+        roomCode;
+}
+
+
+/* =====================================================
+   REAL-TIME SUBSCRIPTION
+   ===================================================== */
+
+function subscribeToGame() {
+
+    if (realtimeChannel) {
+
+        supabaseClient.removeChannel(
+            realtimeChannel
+        );
+    }
+
+    realtimeChannel =
+        supabaseClient
+            .channel(
+                "grid-duel-" + roomCode
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "games",
+                    filter:
+                        "room_code=eq." +
+                        roomCode
+                },
+                function(payload) {
+
+                    if (
+                        payload.eventType ===
+                        "UPDATE"
+                    ) {
+
+                        gameData =
+                            payload.new;
+
+                        updateGameUI();
+                    }
+                }
+            )
+            .subscribe(
+                function(status) {
+
+                    console.log(
+                        "Realtime status:",
+                        status
+                    );
+                }
+            );
+}
+
+
+/* =====================================================
+   UPDATE UI
+   ===================================================== */
+
+function updateGameUI() {
+
+    if (!gameData) {
+        return;
+    }
+
+    let board =
+        gameData.board;
+
+    if (typeof board === "string") {
+
+        try {
+            board = JSON.parse(board);
+        } catch {
+            board = [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+            ];
+        }
+    }
+
+    gameData.board = board;
+
+    cells.forEach(
+        function(cell, index) {
+
+            const value =
+                board[index] || "";
+
+            cell.textContent =
+                value;
+
+            cell.classList.remove(
+                "x",
+                "o",
+                "winner"
+            );
+
+            if (value === "X") {
+                cell.classList.add("x");
+            }
+
+            if (value === "O") {
+                cell.classList.add("o");
+            }
+
+            cell.disabled =
+                value !== "";
+        }
+    );
+
+
+    /* Players */
+
+    playerXStatus.textContent =
+        gameData.player_x
+            ? "Connected"
+            : "Waiting...";
+
+    playerOStatus.textContent =
+        gameData.player_o
+            ? "Connected"
+            : "Waiting...";
+
+
+    /* Waiting */
+
+    if (
+        gameData.status ===
+        "waiting"
+    ) {
+
+        gameStatus.textContent =
+            "Waiting for opponent...";
+
+        statusSub.textContent =
+            "Share the game link with Player O.";
+
+        disableBoard();
+
+        return;
+    }
+
+
+    /* Winner */
+
+    if (gameData.winner) {
+
+        gameStatus.textContent =
+            gameData.winner +
+            " Wins!";
+
+        statusSub.textContent =
+            myPlayer === gameData.winner
+                ? "You won the game!"
+                : "Your opponent won.";
+
+        rematchButton.disabled =
+            false;
+
+        highlightWinningCells(
+            board,
+            gameData.winner
+        );
+
+        disableBoard();
+
+        return;
+    }
+
+
+    /* Draw */
+
+    if (
+        gameData.status ===
+        "draw"
+    ) {
+
+        gameStatus.textContent =
+            "It's a Draw!";
+
+        statusSub.textContent =
+            "Nobody won this round.";
+
+        rematchButton.disabled =
+            false;
+
+        disableBoard();
+
+        return;
+    }
+
+
+    /* Playing */
+
+    rematchButton.disabled =
+        true;
+
+    if (
+        gameData.current_player ===
+        myPlayer
+    ) {
+
+        gameStatus.textContent =
+            "Your Turn";
+
+        statusSub.textContent =
+            "Make your move.";
+
+        enableBoard();
+
+    } else {
+
+        gameStatus.textContent =
+            "Opponent's Turn";
+
+        statusSub.textContent =
+            "Wait for your opponent.";
+
+        disableBoard();
+    }
+}
+
+
+/* =====================================================
+   CELL EVENTS
+   ===================================================== */
+
+cells.forEach(
+    function(cell) {
+
+        cell.addEventListener(
+            "click",
+            function() {
+
+                const index =
+                    Number(
+                        cell.dataset.index
+                    );
+
+                makeMove(index);
+            }
+        );
+    }
+);
+
+
+/* =====================================================
+   MAKE MOVE
+   ===================================================== */
+
+async function makeMove(index) {
+
+    if (!gameData) {
+        return;
+    }
+
+    if (
+        gameData.status !==
+        "playing"
+    ) {
+
+        showToast(
+            "The game is not active."
+        );
+
+        return;
+    }
+
+    if (
+        gameData.current_player !==
+        myPlayer
+    ) {
+
+        showToast(
+            "It is not your turn."
+        );
+
+        return;
+    }
+
+    const board =
+        Array.isArray(gameData.board)
+            ? [...gameData.board]
+            : JSON.parse(
+                gameData.board
+            );
+
+    if (board[index] !== "") {
+
+        showToast(
+            "That square is occupied."
+        );
+
+        return;
+    }
+
+    board[index] =
+        myPlayer;
+
+    const winner =
+        findWinner(board);
+
+    let nextPlayer =
+        myPlayer === "X"
+            ? "O"
+            : "X";
+
+    let newStatus =
+        "playing";
+
+    let newWinner =
+        null;
+
+
+    if (winner) {
+
+        newWinner =
+            winner;
+
+        newStatus =
+            "finished";
+
+    } else if (
+        board.every(
+            function(square) {
+                return square !== "";
+            }
+        )
+    ) {
+
+        newStatus =
+            "draw";
+    }
+
+
+    const { error } =
+        await supabaseClient
+            .from("games")
+            .update({
+
+                board: board,
+
+                current_player:
+                    nextPlayer,
+
+                winner:
+                    newWinner,
+
+                status:
+                    newStatus
+
+            })
+            .eq(
+                "room_code",
+                roomCode
+            )
+            .eq(
+                "current_player",
+                myPlayer
+            );
+
+
+    if (error) {
+
+        console.error(error);
+
+        showToast(
+            "Move could not be saved: " +
+            error.message
+        );
+    }
+}
+
+
+/* =====================================================
+   FIND WINNER
+   ===================================================== */
+
+function findWinner(board) {
+
+    for (
+        const combination
+        of winningCombinations
+    ) {
+
+        const a =
+            combination[0];
+
+        const b =
+            combination[1];
+
+        const c =
+            combination[2];
+
+        if (
+            board[a] !== "" &&
+            board[a] === board[b] &&
+            board[a] === board[c]
+        ) {
+
+            return board[a];
+        }
+    }
+
+    return null;
+}
+
+
+/* =====================================================
+   WINNER HIGHLIGHT
+   ===================================================== */
+
+function highlightWinningCells(
+    board,
+    winner
+) {
+
+    for (
+        const combination
+        of winningCombinations
+    ) {
+
+        const a =
+            combination[0];
+
+        const b =
+            combination[1];
+
+        const c =
+            combination[2];
+
+        if (
+            board[a] === winner &&
+            board[b] === winner &&
+            board[c] === winner
+        ) {
+
+            cells[a].classList.add(
+                "winner"
+            );
+
+            cells[b].classList.add(
+                "winner"
+            );
+
+            cells[c].classList.add(
+                "winner"
+            );
+
+            break;
+        }
+    }
+}
+
+
+/* =====================================================
+   ENABLE BOARD
+   ===================================================== */
+
+function enableBoard() {
+
+    cells.forEach(
+        function(cell, index) {
+
+            cell.disabled =
+                gameData.board[index] !== "";
+        }
+    );
+}
+
+
+/* =====================================================
+   DISABLE BOARD
+   ===================================================== */
+
+function disableBoard() {
+
+    cells.forEach(
+        function(cell) {
+
+            cell.disabled =
+                true;
+        }
+    );
+}
+
+
+/* =====================================================
+   REMATCH
+   ===================================================== */
+
+async function rematchGame() {
+
+    const emptyBoard = [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ];
+
+    const { error } =
+        await supabaseClient
+            .from("games")
+            .update({
+
+                board:
+                    emptyBoard,
+
+                current_player:
+                    "X",
+
+                winner:
+                    null,
+
+                status:
+                    "playing"
+
+            })
+            .eq(
+                "room_code",
+                roomCode
+            );
+
+
+    if (error) {
+
+        console.error(error);
+
+        showToast(
+            "Could not start rematch."
+        );
+
+        return;
+    }
+
+    rematchButton.disabled =
+        true;
+}
+
+
+/* =====================================================
+   COPY GAME LINK
+   ===================================================== */
+
+async function copyGameLink() {
+
+    const link =
+        window.location.href;
+
+    try {
+
+        await navigator
+            .clipboard
+            .writeText(link);
+
+        showToast(
+            "Game link copied!"
+        );
+
+    } catch {
+
+        showToast(
+            "Could not copy link."
+        );
+    }
+}
+
+
+/* =====================================================
+   LEAVE GAME
+   ===================================================== */
+
+async function leaveGame() {
+
+    const confirmed =
+        confirm(
+            "Are you sure you want to leave?"
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    if (realtimeChannel) {
+
+        await supabaseClient
+            .removeChannel(
+                realtimeChannel
+            );
+    }
+
+    localStorage.removeItem(
+        "gridDuelPlayerId"
+    );
+
+    window.location.href =
+        window.location.pathname;
+}
+
+
+/* =====================================================
+   TOAST
+   ===================================================== */
+
+function showToast(message) {
+
+    const toast =
+        document.getElementById(
+            "toast"
+        );
+
+    toast.textContent =
+        message;
+
+    toast.classList.add(
+        "show"
+    );
+
+    setTimeout(
+        function() {
+
+            toast.classList.remove(
+                "show"
+            );
+
+        },
+        3000
+    );
+}
+
+
+/* =====================================================
+   AUTO JOIN FROM URL
+   ===================================================== */
+
+async function checkRoomFromURL() {
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const urlRoom =
+        params.get("room");
+
+    if (!urlRoom) {
+        return;
+    }
+
+    const code =
+        urlRoom
+            .trim()
+            .toUpperCase();
+
+    document
+        .getElementById(
+            "joinRoomInput"
+        )
+        .value = code;
+
+    showJoinArea();
+
+    await joinGame();
+}
+
+
+/* =====================================================
+   START
+   ===================================================== */
+
+window.addEventListener(
+    "load",
+    function() {
+
+        checkRoomFromURL();
+
+    }
+);
+
+</script>
+
+</body>
+</html>
